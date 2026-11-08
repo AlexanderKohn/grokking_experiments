@@ -1,7 +1,6 @@
 # Experiment 01 results: the frequency lottery and width
 
-Status: **in progress.** Shared infrastructure, calibration, Phase 1A and Phase 1B are done.
-Phases 1C and 1D have not started.
+Status: **in progress.** Shared infrastructure, calibration and Phases 1A–1C are done. Phase 1D has not started.
 
 ## Reproduce
 
@@ -10,6 +9,8 @@ python -m pytest -q tests                                              # Fourier
 python experiments/01_frequency_lottery/phase1a_init_stats.py --p 47 --seeds 1000
 bash   experiments/01_frequency_lottery/run_phase1b.sh 0.5 6           # 18 runs, 6 in parallel, about 30 min
 python experiments/01_frequency_lottery/phase1b_analysis.py
+bash   experiments/01_frequency_lottery/run_phase1c.sh 6 1.0           # 64 runs, 6 in parallel, about 15 min
+python experiments/01_frequency_lottery/phase1c_analysis.py
 ```
 
 Raw runs go to `runs/exp01/` (gitignored). Summary plots and JSON go to `figures/`.
@@ -131,6 +132,72 @@ Chance is 1/K = 0.043, or 3/K = 0.13 for top-3. For full data, "switch" compares
 
 **For 1C:** use init scale **1.0** (the default), since it is the most predictive scale and the spec says to pick
 that one. No extra init-scale arm is needed.
+
+## Phase 1C: width sweep
+
+**Setup:** 64 runs: H ∈ {4, 8, 16, 32, 64, 128, 256, 512} × seeds 0–7, p = 47, frac 0.5, init scale 1.0, wd 1.0.
+Runs stop 2k steps after test reaches 99%, with a cap of 50k steps. The init statistics for each run are recomputed
+from the same `make_model(seed, H)` θ₀ the run trained from. Full data: `figures/phase1c_results.json`. Launcher:
+`run_phase1c.sh`. Analysis: `phase1c_analysis.py`.
+
+![width sweep](figures/phase1c_width_sweep.png)
+
+| H | P(test ≥ 95%) | median t_grok (95%) | P(test ≥ 99%) | median t_grok (99%) | fits train | median final test acc | init coverage (median) |
+|---|---|---|---|---|---|---|---|
+| 4–16 | 0 | - | 0 | - | 0/8 | 0.01–0.15 | 4–10 |
+| 32 | 0 | - | 0 | - | 4/8 (steps 9.5k–23k) | 0.22 | 17 |
+| 64 | 0 | - | 0 | - | 8/8 (step ~1.3k) | 0.39 | 22 |
+| **128** | **1.0** | **27,600** | **0** | - | 8/8 (step ~600) | **0.98** | **23 (complete)** |
+| 256 | 1.0 | 7,900 | 1.0 | 10,400 | 8/8 (step 300) | 1.00 | 23 |
+| 512 | 1.0 | 4,600 | 1.0 | 5,500 | 8/8 (step 200) | 1.00 | 23 |
+
+1. **There is a sharp width threshold between H = 64 and H = 128.**
+   - At H ≤ 64, the network memorizes (from H = 64; H = 32 only partly) but plateaus at 30–48% test accuracy for
+     all 50k steps.
+   - At H = 128, every seed generalizes to 97–99% but plateaus *just below* 99%. The strict 99% criterion would
+     score it "did not grok", so the 95% criterion is the informative one at the boundary.
+   - Above the threshold, grokking time keeps falling steeply: 27.6k → 7.9k → 4.6k steps at 95% as H goes
+     128 → 256 → 512. log₁₀(t_grok / t_fit) is about 1.5 at both 256 and 512.
+2. **Coverage at init is not the binding constraint, so it doesn't explain the threshold.**
+   - Init coverage is already complete (23/23) in every H = 128 seed, and it is 22/23 at H = 64. Yet H = 64 gets
+     only 39% test accuracy.
+   - Above H = 128, coverage is saturated, but t_grok still falls 6×.
+   - Whatever width buys beyond H = 128, it isn't more frequencies. In its init-coverage form, (A) is ruled out as
+     the explanation of the width effect.
+3. **The key test: init statistics do not predict within-width variation.** For each width with between-seed
+   variation, I tested whether the init-time statistics (distinct predicted frequencies, minimum and maximum neurons
+   per frequency, under both the growth and power predictors) predict the run's outcome. Outcomes were t_grok at 99%,
+   t_grok at 95%, and final test accuracy. The tests used Spearman ρ, with a width-stratified permutation test
+   (10k permutations).
+   - Every combined stratified p is ≥ 0.25.
+   - One per-width cell stands out: at H = 64, init max-count vs test accuracy gives ρ = −0.94 (p < 0.01). That is
+     the *opposite* sign from (B). It is one of roughly 100 per-width tests, so it is most likely a false positive.
+   - **Power caveat:** with 8 seeds, the per-width tests can only detect |ρ| ≳ 0.7. The combined test is better but
+     still modest.
+   - Between-seed spread at fixed H is small (t_grok IQR about ±10% at 256 and 512), so there is little variance
+     left for init to explain.
+
+   ![within width](figures/phase1c_within_width.png)
+4. **The final structure does predict outcomes, in the direction of redundancy.** Across the capacity-limited widths
+   (H ≤ 64), runs whose *final* networks concentrate on **fewer** frequencies, with **more** neurons each, reach higher
+   test accuracy:
+   - final distinct k*: mean within-width ρ = −0.46, stratified p = 0.003
+   - neurons per key frequency: ρ = +0.37, p = 0.004
+   - effective number of frequencies: ρ = −0.40, p = 0.003
+
+   For example, H = 64 networks drop from 22 frequencies at init to 13–21 at the end, and those that keep fewer do
+   better. This is descriptive, not causal: the concentration is a product of training, not of θ₀. But it favors (B),
+   redundancy, over (A), coverage. Below the threshold, the network does better by giving up frequencies so it can
+   stack neurons on the rest.
+
+**What 1C says about (A), (B) and (C) so far:**
+- **(A) in its init-coverage form is ruled out.** The threshold sits where coverage is already complete.
+- **The init lottery doesn't affect run-level outcomes.** Seed-to-seed differences in θ₀ statistics explain nothing
+  detectable, which is consistent with (C): the 1B switching makes the draw at init matter little.
+- **(B) gets descriptive support:** a few neurons per frequency is the binding resource below the threshold.
+- **Open question:** whether redundancy also drives the speedups *above* the threshold, or whether that is plain
+  optimization or capacity (C). The 1D interventions at **H = 128**, which generalizes but slowly, are designed to
+  test this causally.
 
 ## Infrastructure notes
 
