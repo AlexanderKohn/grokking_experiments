@@ -47,6 +47,9 @@ def parse_args():
     ap.add_argument("--ckpt-sparse-after", type=int, default=0,
                     help="after this step, checkpoint every --ckpt-sparse-every steps instead")
     ap.add_argument("--ckpt-sparse-every", type=int, default=1000)
+    ap.add_argument("--ckpt-dense-until", type=int, default=0,
+                    help="up to this step, checkpoint every --ckpt-dense-every steps instead")
+    ap.add_argument("--ckpt-dense-every", type=int, default=10)
     ap.add_argument("--init-from", default=None, help="load initial weights from this state_dict")
     ap.add_argument("--mask", default=None,
                     help="dict {param_name: bool tensor}; masked weights are held at zero")
@@ -64,6 +67,8 @@ def evaluate(model, x, y):
 def is_ckpt_step(step, args):
     if not args.ckpt_every:
         return False
+    if args.ckpt_dense_until and step <= args.ckpt_dense_until:
+        return step % args.ckpt_dense_every == 0
     if args.ckpt_sparse_after and step > args.ckpt_sparse_after:
         return step % args.ckpt_sparse_every == 0
     return step % args.ckpt_every == 0

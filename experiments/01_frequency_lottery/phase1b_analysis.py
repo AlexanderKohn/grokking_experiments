@@ -18,7 +18,8 @@ import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from grokking.fourier import (active_neurons, circular_resultant, key_frequencies,  # noqa: E402
-                              neuron_fourier, split_weights, winner_predictions)
+                              neuron_contribution, neuron_fourier, split_weights,
+                              winner_predictions)
 
 BLUE, ORANGE, AQUA, YELLOW = "#2a78d6", "#eb6834", "#1baf7a", "#eda100"
 SCALE_COLOR = {0.1: BLUE, 0.3: ORANGE, 1.0: AQUA}
@@ -28,6 +29,13 @@ PREDICTORS = ["pred_power", "pred_growth", "pred_growth_pos"]
 def gather_k(t, k):
     """t: (H, K) values, k: (H,) frequencies 1..K -> (H,)"""
     return t.gather(-1, (k - 1).clamp_min(0).unsqueeze(-1)).squeeze(-1)
+
+
+def eff_num_freqs(kstar, contrib, K):
+    """1 / sum_k q_k^2, where q_k is the share of total neuron contribution on frequency k."""
+    q = torch.bincount(kstar, weights=contrib.double(), minlength=K + 1)[1:]
+    q = q / q.sum()
+    return (1 / q.pow(2).sum()).item()
 
 
 def analyze_run(d, p, sign):
@@ -49,10 +57,13 @@ def analyze_run(d, p, sign):
     growth = init["alpha_a"] * init["alpha_b"] * init["beta"] * init["cosD"]
     top3 = growth.topk(3, dim=-1).indices + 1
 
-    K_t, ipr_t, R_minus, R_plus, sinD = [], [], [], [], []
+    K = (p - 1) // 2
+    K_t, ipr_t, R_minus, R_plus, sinD, neff_t = [], [], [], [], [], []
     for _, f in files:
-        F = neuron_fourier(*split_weights(torch.load(f), p), sign=sign)
+        W = split_weights(torch.load(f), p)
+        F = neuron_fourier(*W, sign=sign)
         k = F["kstar"]
+        neff_t.append(eff_num_freqs(k, neuron_contribution(*W), K))
         K_t.append(k)
         ipr_t.append(F["ipr"][act].mean().item())
         pa, pb, ps = (gather_k(F[x], k)[act] for x in ("phi_a", "phi_b", "psi"))
@@ -91,7 +102,7 @@ def analyze_run(d, p, sign):
         "keys_expected_frac": len(keys) / ((p - 1) // 2),
         "lock_step": lock_step[am].tolist(), "t_fit": t_fit, "t_grok": t_grok,
         "switch_frac": switch,
-        "ipr_t": ipr_t, "R_minus_t": R_minus, "R_plus_t": R_plus, "sinD_t": sinD,
+        "ipr_t": ipr_t, "neff_t": neff_t, "neff_final": neff_t[-1], "R_minus_t": R_minus, "R_plus_t": R_plus, "sinD_t": sinD,
         "final_ipr_active": Ffin["ipr"][act].mean().item(),
     }
 
@@ -147,6 +158,7 @@ def main():
         c["final_R_minus"] = [r["R_minus_t"][-1] for r in rs]
         c["final_R_plus"] = [r["R_plus_t"][-1] for r in rs]
         c["final_ipr"] = [r["final_ipr_active"] for r in rs]
+        c["neff_final"] = [r["neff_final"] for r in rs]
         c["key_freqs"] = [r["key_freqs"] for r in rs]
         c["init_pred_on_keys"] = [r["init_pred_on_keys"] for r in rs]
         c["keys_expected_frac"] = [r["keys_expected_frac"] for r in rs]
@@ -154,7 +166,7 @@ def main():
         res["conditions"][f"{regime}_is{scale}"] = c
     for (regime, scale, seed), r in runs.items():
         res["runs"][f"{regime}_is{scale}_s{seed}"] = {k: r[k] for k in (
-            "n_active", "key_freqs", "t_fit", "t_grok", "switch_frac", "final_ipr_active")}
+            "n_active", "key_freqs", "t_fit", "t_grok", "switch_frac", "final_ipr_active", "neff_final")}
     (out / "phase1b_results.json").write_text(json.dumps(res, indent=2, default=float))
 
     # ---------- plots ----------
@@ -226,6 +238,7 @@ def main():
         b.plot(st, r["R_minus_t"], color=YELLOW, lw=2, label="R(φa+φb−ψ) at k*")
         b.plot(st, r["R_plus_t"], color="#999", lw=1.5, ls="--", label="R(φa+φb+ψ) at k*")
         b.plot(st, r["sinD_t"], color="#e87ba4", lw=2, label="mean |sin D|")
+        b.plot(st, np.array(r["neff_t"]) / K, color="#444", lw=1.5, label="effective # freqs / K")
         b.set(xlabel="step", ylabel="value", xscale="log", ylim=(0, 1.02))
         for ax in (a, b):
             for t, ls in ((r["t_fit"], ":"), (r["t_grok"], "--")):
@@ -245,7 +258,8 @@ def main():
             f" | switch {['%.2f' % x if x is not None else '-' for x in v['switch_frac']]}"
             f" | t_fit {v['t_fit']} t_grok {v['t_grok']} | lock med {v['lock_median']:.0f}"
             f" | R- {np.mean(v['final_R_minus']):.2f} R+ {np.mean(v['final_R_plus']):.2f}"
-            f" | IPR {np.mean(v['final_ipr']):.2f} | keys {[sorted(k) for k in v['key_freqs']]}")
+            f" | IPR {np.mean(v['final_ipr']):.2f} | n_eff {['%.1f' % x for x in v['neff_final']]}"
+            f" | n_keys {[len(k) for k in v['key_freqs']]}")
 
 
 if __name__ == "__main__":
