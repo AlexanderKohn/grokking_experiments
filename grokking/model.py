@@ -45,17 +45,22 @@ class MLP(nn.Module):
       onehot: concat(onehot(a), onehot(b)) of size 2p -> hidden. This is the standard
               MLP-grokking setup (Gromov 2023; Liu et al. 2022). The first layer is
               equivalent to separate, untied embeddings for a and b that are summed.
+      tied:   onehot(a) + onehot(b) of size p -> hidden. a and b share input weights,
+              as in arXiv 2602.16849.
       scalar: [a, b] / (p - 1) as two real numbers -> hidden. There is no symbolic
               structure, so the network must build the wrap-around itself, which is
               much harder.
       embed:  a shared learned embedding table for a and b, concatenated -> hidden.
     """
 
-    def __init__(self, p: int, n_out: int, input_mode="onehot", d_hidden=512, d_embed=128):
+    def __init__(self, p: int, n_out: int, input_mode="onehot", d_hidden=512, d_embed=128,
+                 bias=True):
         super().__init__()
         self.p, self.input_mode = p, input_mode
         if input_mode == "onehot":
             d_in = 2 * p
+        elif input_mode == "tied":
+            d_in = p
         elif input_mode == "scalar":
             d_in = 2
         elif input_mode == "embed":
@@ -64,12 +69,15 @@ class MLP(nn.Module):
             d_in = 2 * d_embed
         else:
             raise ValueError(input_mode)
-        self.net = nn.Sequential(nn.Linear(d_in, d_hidden), nn.ReLU(), nn.Linear(d_hidden, n_out))
+        self.net = nn.Sequential(nn.Linear(d_in, d_hidden, bias=bias), nn.ReLU(),
+                                 nn.Linear(d_hidden, n_out, bias=bias))
 
     def forward(self, x):
         ab = x[:, [0, 2]]
         if self.input_mode == "onehot":
             h = F.one_hot(ab, self.p).float().flatten(1)
+        elif self.input_mode == "tied":
+            h = F.one_hot(ab, self.p).float().sum(1)
         elif self.input_mode == "scalar":
             h = ab.float() / (self.p - 1)
         else:
@@ -77,10 +85,27 @@ class MLP(nn.Module):
         return self.net(h)
 
 
-def build_model(name: str, p: int, mlp_input: str = "onehot"):
+def build_model(name: str, p: int, mlp_input: str = "onehot", d_hidden: int = 512,
+                bias: bool = True):
     vocab, n_out = p + 2, p
     if name == "transformer":
         return Transformer(vocab, n_out)
     if name == "mlp":
-        return MLP(p, n_out, input_mode=mlp_input)
+        return MLP(p, n_out, input_mode=mlp_input, d_hidden=d_hidden, bias=bias)
     raise ValueError(name)
+
+
+def make_model(name: str, p: int, seed: int, mlp_input: str = "onehot", d_hidden: int = 512,
+               bias: bool = True, init_scale: float = 1.0):
+    """Build the exact initialization train.py uses for a given seed.
+
+    Init-only analyses (Exp 01, Phase 1A) and training both go through this function, so
+    "the theta_0 of seed s" means the same thing everywhere.
+    """
+    torch.manual_seed(seed)
+    model = build_model(name, p, mlp_input=mlp_input, d_hidden=d_hidden, bias=bias)
+    if init_scale != 1.0:
+        with torch.no_grad():
+            for prm in model.parameters():
+                prm.mul_(init_scale)
+    return model

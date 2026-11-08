@@ -1,0 +1,344 @@
+{
+  "p": 47,
+  "K": 23,
+  "seeds": 1000,
+  "widths": [
+    4,
+    8,
+    16,
+    32,
+    64,
+    128,
+    256,
+    512,
+    1024
+  ],
+  "sign": -1,
+  "mlp_input": "onehot",
+  "per_width": {
+    "4": {
+      "agree_power_growth": 0.22375,
+      "pred_power": {
+        "chi2": 20.607,
+        "chi2_p": 0.5451262008038498,
+        "max_rel_dev": 0.17300000000000004,
+        "frac_none": 0.0,
+        "distinct_mean": 3.768,
+        "min_count_mean": 0.0,
+        "max_count_mean": 1.23
+      },
+      "pred_growth": {
+        "chi2": 30.784499999999994,
+        "chi2_p": 0.10061022507036727,
+        "max_rel_dev": 0.21324999999999994,
+        "frac_none": 0.0,
+        "distinct_mean": 3.727,
+        "min_count_mean": 0.0,
+        "max_count_mean": 1.268
+      },
+      "pred_growth_pos": {
+        "chi2": 30.784499999999994,
+        "chi2_p": 0.10061022507036727,
+        "max_rel_dev": 0.21324999999999994,
+        "frac_none": 0.0,
+        "distinct_mean": 3.727,
+        "min_count_mean": 0.0,
+        "max_count_mean": 1.268
+      },
+      "coupon_expected_distinct": 3.746609681926519,
+      "multinomial_ref": {
+        "distinct": 3.748,
+        "min": 0.0,
+        "max": 1.249
+      }
+    },
+    "8": {
+      "agree_power_growth": 0.227,
+      "pred_power": {
+        "chi2": 21.997500000000002,
+        "chi2_p": 0.4600379337446362,
+        "max_rel_dev": 0.12412500000000004,
+        "frac_none": 0.0,
+        "distinct_mean": 6.907,
+        "min_count_mean": 0.0,
+        "max_count_mean": 1.808
+      },
+      "pred_growth": {
+        "chi2": 18.8695,
+        "chi2_p": 0.6533725117430311,
+        "max_rel_dev": 0.09537499999999999,
+        "frac_none": 0.0,
+        "distinct_mean": 6.909,
+        "min_count_mean": 0.0,
+        "max_count_mean": 1.846
+      },
+      "pred_growth_pos": {
+        "chi2": 18.8695,
+        "chi2_p": 0.6533725117430311,
+        "max_rel_dev": 0.09537499999999999,
+        "frac_none": 0.0,
+        "distinct_mean": 6.909,
+        "min_count_mean": 0.0,
+        "max_count_mean": 1.846
+      },
+      "coupon_expected_distinct": 6.882911359126713,
+      "multinomial_ref": {
+        "distinct": 6.894,
+        "min": 0.0,
+        "max": 1.823
+      }
+    },
+    "16": {
+      "agree_power_growth": 0.2284375,
+      "pred_power": {
+        "chi2": 12.804124999999999,
+        "chi2_p": 0.9384803444285933,
+        "max_rel_dev": 0.077125,
+        "frac_none": 0.0,
+        "distinct_mean": 11.751,
+        "min_count_mean": 0.0,
+        "max_count_mean": 2.64
+      },
+      "pred_growth": {
+        "chi2": 20.463125,
+        "chi2_p": 0.5540945324007418,
+        "max_rel_dev": 0.09537499999999999,
+        "frac_none": 0.0,
+        "distinct_mean": 11.724,
+        "min_count_mean": 0.0,
+        "max_count_mean": 2.651
+      },
+      "pred_growth_pos": {
+        "chi2": 20.463125,
+        "chi2_p": 0.5540945324007418,
+        "max_rel_dev": 0.09537499999999999,
+        "frac_none": 0.0,
+        "distinct_mean": 11.724,
+        "min_count_mean": 0.0,
+        "max_count_mean": 2.651
+      },
+      "coupon_expected_distinct": 11.706063206184055,
+      "multinomial_ref": {
+        "distinct": 11.66,
+        "min": 0.0,
+        "max": 2.701
+      }
+    },
+    "32": {
+      "agree_power_growth": 0.22975,
+      "pred_power": {
+        "chi2": 25.621187499999998,
+        "chi2_p": 0.2683010686489327,
+        "max_rel_dev": 0.06662499999999993,
+        "frac_none": 0.0,
+        "distinct_mean": 17.436,
+        "min_count_mean": 0.0,
+        "max_count_mean": 4.081
+      },
+      "pred_growth": {
+        "chi2": 23.870312499999997,
+        "chi2_p": 0.3540639908469584,
+        "max_rel_dev": 0.06159374999999989,
+        "frac_none": 0.0,
+        "distinct_mean": 17.535,
+        "min_count_mean": 0.001,
+        "max_count_mean": 4.065
+      },
+      "pred_growth_pos": {
+        "chi2": 23.870312499999997,
+        "chi2_p": 0.3540639908469584,
+        "max_rel_dev": 0.06159374999999989,
+        "frac_none": 0.0,
+        "distinct_mean": 17.535,
+        "min_count_mean": 0.001,
+        "max_count_mean": 4.065
+      },
+      "coupon_expected_distinct": 17.454217030316972,
+      "multinomial_ref": {
+        "distinct": 17.483,
+        "min": 0.0,
+        "max": 4.063
+      }
+    },
+    "64": {
+      "agree_power_growth": 0.2301875,
+      "pred_power": {
+        "chi2": 23.256406249999994,
+        "chi2_p": 0.3873743110520077,
+        "max_rel_dev": 0.03679687500000006,
+        "frac_none": 0.0,
+        "distinct_mean": 21.619,
+        "min_count_mean": 0.204,
+        "max_count_mean": 6.381
+      },
+      "pred_growth": {
+        "chi2": 29.33990625,
+        "chi2_p": 0.13540983863054798,
+        "max_rel_dev": 0.047937499999999966,
+        "frac_none": 0.0,
+        "distinct_mean": 21.657,
+        "min_count_mean": 0.207,
+        "max_count_mean": 6.402
+      },
+      "pred_growth_pos": {
+        "chi2": 29.33990625,
+        "chi2_p": 0.13540983863054798,
+        "max_rel_dev": 0.047937499999999966,
+        "frac_none": 0.0,
+        "distinct_mean": 21.657,
+        "min_count_mean": 0.207,
+        "max_count_mean": 6.402
+      },
+      "coupon_expected_distinct": 21.66279527187712,
+      "multinomial_ref": {
+        "distinct": 21.619,
+        "min": 0.206,
+        "max": 6.436
+      }
+    },
+    "128": {
+      "agree_power_growth": 0.231203125,
+      "pred_power": {
+        "chi2": 17.26328125,
+        "chi2_p": 0.7486661511228321,
+        "max_rel_dev": 0.026375000000000037,
+        "frac_none": 0.0,
+        "distinct_mean": 22.917,
+        "min_count_mean": 1.597,
+        "max_count_mean": 10.558
+      },
+      "pred_growth": {
+        "chi2": 18.738875,
+        "chi2_p": 0.6613928594028975,
+        "max_rel_dev": 0.025914062500000057,
+        "frac_none": 0.0,
+        "distinct_mean": 22.924,
+        "min_count_mean": 1.612,
+        "max_count_mean": 10.539
+      },
+      "pred_growth_pos": {
+        "chi2": 18.731005710982114,
+        "chi2_p": 0.6618749459592916,
+        "max_rel_dev": 0.02590645239415934,
+        "frac_none": 7.8125e-06,
+        "distinct_mean": 22.924,
+        "min_count_mean": 1.612,
+        "max_count_mean": 10.539
+      },
+      "coupon_expected_distinct": 22.92225580500373,
+      "multinomial_ref": {
+        "distinct": 22.92,
+        "min": 1.604,
+        "max": 10.555
+      }
+    },
+    "256": {
+      "agree_power_growth": 0.23084375,
+      "pred_power": {
+        "chi2": 28.119265625000004,
+        "chi2_p": 0.17176223934203294,
+        "max_rel_dev": 0.02269140624999988,
+        "frac_none": 0.0,
+        "distinct_mean": 23.0,
+        "min_count_mean": 5.332,
+        "max_count_mean": 17.928
+      },
+      "pred_growth": {
+        "chi2": 13.013656249999997,
+        "chi2_p": 0.9327796560349767,
+        "max_rel_dev": 0.018187500000000023,
+        "frac_none": 0.0,
+        "distinct_mean": 22.999,
+        "min_count_mean": 5.247,
+        "max_count_mean": 17.977
+      },
+      "pred_growth_pos": {
+        "chi2": 13.013656249999997,
+        "chi2_p": 0.9327796560349767,
+        "max_rel_dev": 0.018187500000000023,
+        "frac_none": 0.0,
+        "distinct_mean": 22.999,
+        "min_count_mean": 5.247,
+        "max_count_mean": 17.977
+      },
+      "coupon_expected_distinct": 22.99973721044106,
+      "multinomial_ref": {
+        "distinct": 23.0,
+        "min": 5.245,
+        "max": 18.03
+      }
+    },
+    "512": {
+      "agree_power_growth": 0.230400390625,
+      "pred_power": {
+        "chi2": 12.560542968750001,
+        "chi2_p": 0.9446980892546724,
+        "max_rel_dev": 0.008091796875000057,
+        "frac_none": 0.0,
+        "distinct_mean": 23.0,
+        "min_count_mean": 13.684,
+        "max_count_mean": 31.859
+      },
+      "pred_growth": {
+        "chi2": 13.519355468750001,
+        "chi2_p": 0.9176574634596336,
+        "max_rel_dev": 0.01253906249999992,
+        "frac_none": 0.0,
+        "distinct_mean": 23.0,
+        "min_count_mean": 13.565,
+        "max_count_mean": 31.867
+      },
+      "pred_growth_pos": {
+        "chi2": 13.519355468750001,
+        "chi2_p": 0.9176574634596336,
+        "max_rel_dev": 0.01253906249999992,
+        "frac_none": 0.0,
+        "distinct_mean": 23.0,
+        "min_count_mean": 13.565,
+        "max_count_mean": 31.867
+      },
+      "coupon_expected_distinct": 22.999999996997463,
+      "multinomial_ref": {
+        "distinct": 23.0,
+        "min": 13.662,
+        "max": 31.879
+      }
+    },
+    "1024": {
+      "agree_power_growth": 0.230357421875,
+      "pred_power": {
+        "chi2": 20.866625,
+        "chi2_p": 0.5289936168980547,
+        "max_rel_dev": 0.007687500000000069,
+        "frac_none": 0.0,
+        "distinct_mean": 23.0,
+        "min_count_mean": 32.167,
+        "max_count_mean": 57.806
+      },
+      "pred_growth": {
+        "chi2": 25.835343750000007,
+        "chi2_p": 0.25881865866195214,
+        "max_rel_dev": 0.008394531250000004,
+        "frac_none": 0.0,
+        "distinct_mean": 23.0,
+        "min_count_mean": 32.096,
+        "max_count_mean": 58.071
+      },
+      "pred_growth_pos": {
+        "chi2": 25.835343750000007,
+        "chi2_p": 0.25881865866195214,
+        "max_rel_dev": 0.008394531250000004,
+        "frac_none": 0.0,
+        "distinct_mean": 23.0,
+        "min_count_mean": 32.096,
+        "max_count_mean": 58.071
+      },
+      "coupon_expected_distinct": 23.0,
+      "multinomial_ref": {
+        "distinct": 23.0,
+        "min": 32.162,
+        "max": 57.849
+      }
+    }
+  }
+}
