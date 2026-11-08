@@ -1,6 +1,6 @@
 # Experiment 01 results: the frequency lottery and width
 
-Status: **in progress.** Shared infrastructure, calibration and Phases 1A–1C are done. Phase 1D has not started.
+Status: **all phases (1A–1D) done.** The conclusion is at the end.
 
 ## Reproduce
 
@@ -11,6 +11,9 @@ bash   experiments/01_frequency_lottery/run_phase1b.sh 0.5 6           # 18 runs
 python experiments/01_frequency_lottery/phase1b_analysis.py
 bash   experiments/01_frequency_lottery/run_phase1c.sh 6 1.0           # 64 runs, 6 in parallel, about 15 min
 python experiments/01_frequency_lottery/phase1c_analysis.py
+python experiments/01_frequency_lottery/phase1d_interventions.py make --seeds 0 1 2
+bash   experiments/01_frequency_lottery/run_phase1d.sh 6               # 27 runs, 6 in parallel, about 15 min
+python experiments/01_frequency_lottery/phase1d_interventions.py analyze
 ```
 
 Raw runs go to `runs/exp01/` (gitignored). Summary plots and JSON go to `figures/`.
@@ -198,6 +201,97 @@ from the same `make_model(seed, H)` θ₀ the run trained from. Full data: `figu
 - **Open question:** whether redundancy also drives the speedups *above* the threshold, or whether that is plain
   optimization or capacity (C). The 1D interventions at **H = 128**, which generalizes but slowly, are designed to
   test this causally.
+
+## Phase 1D: interventions on θ₀ (H = 128, seeds 0–2)
+
+**Setup:**
+- **Width:** H = 128 is the narrowest width that generalizes (95% test at about 28k steps), so speedups and slowdowns
+  are both visible.
+- **Edits:** each seed's θ₀ is edited with `project_to_frequencies`, or a direct DFT edit for the rigged variants.
+  Every row of W1 and column of W2 is then rescaled to its original norm. The DC bin and biases are untouched.
+- **Retraining:** each edited θ₀ is retrained with `--init-from` on the *same* data split, capped at 50k steps.
+- **Sanity check:** the unedited baseline reloaded through `--init-from` reproduces the 1C runs exactly (identical
+  t95 and final test accuracy for all three seeds).
+- Build and analysis: `phase1d_interventions.py`. Launcher: `run_phase1d.sh`. Numbers: `figures/phase1d_results.json`.
+
+**One adaptation.** The spec's knockout removes "the seed's final key frequencies". In this setup every run uses all
+23 (see 1B and 1C), so the knockout removes the seed's **top 5 frequencies by final contribution share** instead.
+These hold only 28–30% of the contribution, against 22% under uniform use. Two controls remove 5 random frequencies
+drawn from the rest.
+
+![interventions](figures/phase1d_curves.png)
+
+| variant | t95 per seed (0, 1, 2) | final test acc | effective # freqs at end | note |
+|---|---|---|---|---|
+| baseline | 31,850 / 24,000 / 27,750 | 0.98 / 0.98 / 0.98 | 21–22 | identical to 1C |
+| knockout (top 5) | 26,150 / 23,100 / 29,500 | 0.98 / 0.98 / 0.98 | 20–21 | knocked-out freqs regrow to a 12–14% share |
+| knockout control 0 | 18,650 / 31,350 / 18,850 | 0.99 / 0.98 / 0.98 | 20–21 | |
+| knockout control 1 | 32,300 / 24,700 / 26,100 | 0.97 / 0.99 / 0.96 | 21 | |
+| mono k = 1 | 32,250 / 46,950 / never | 0.98 / 0.95 / 0.93 | 16–18 | |
+| mono k = 8 | never / 42,350 / never | 0.94 / 0.95 / 0.94 | 16–18 | |
+| mono k = 17 | 33,300 / never / never | 0.96 / 0.92 / 0.94 | 17–18 | |
+| **rigged (round-robin)** | **11,200 / 2,950 / 3,450** | 0.99 / 0.99 / 0.99 | 22.7 | |
+| **rigged (random assignment)** | **4,250 / 4,850 / 6,150** | 0.99 / 0.98 / 0.99 | 19–21 | |
+
+"never" = did not reach 95% within 50k steps.
+
+1. **Knockout has no effect.** Removing a seed's most-used frequencies from every neuron at init leaves t95 within
+   the seed-to-seed range, and random knockouts behave the same. The removed frequencies are not lost: training
+   **regrows** them to a 12–14% share of the final network, below their baseline 28–30% but well above zero. The
+   frequencies a network ends up using are not fixed by θ₀. Removing them just reroutes the outcome.
+2. **Monoculture slows grokking and caps it.**
+   - Forcing every neuron onto a single frequency delays generalization in all 9 runs. Only 4 of 9 reach 95% within
+     50k steps, against 3/3 for the baseline, and final accuracy is 0.92–0.98.
+   - The network **re-diversifies**: by the end it uses 21–23 distinct frequencies, and the forced one keeps only a
+     13–15% share.
+   - One frequency is enough in principle, but in practice the network neither uses just one nor learns faster from
+     one. Diversity helps the learning dynamics. That fits the "majority vote over many frequencies" picture and
+     goes against the strong form of (B), which says redundancy on *any* small set suffices.
+3. **Rigged coverage gives a large speedup, but it doesn't come from coverage.**
+   - **The speedup:** boosting one aligned frequency per neuron (twice that neuron's largest init magnitude, with
+     D = 0) cuts t95 from about 28k to about 3–11k steps. Test accuracy starts climbing by about step 100, so the
+     long memorization plateau almost disappears.
+   - **The control:** the *random*-assignment arm is just as fast (4.3–6.2k). It gets the same boost but multinomial
+     coverage, with 1–2 neurons on the least-covered frequency against 5 in round-robin. Round-robin is not reliably
+     better: it was faster on seeds 1–2 and slower on seed 0.
+   - **The driver:** what matters is that neurons *start* as strong, phase-aligned single-frequency features. How
+     those features are spread over frequencies matters very little.
+
+## Conclusion: which of (A), (B) and (C) the evidence favors
+
+**Mostly (C), with a twist.**
+- **The draw at init is real but weak.** θ₀ predicts a neuron's final frequency at 3–10× chance (1B). Neurons commit
+  within tens of steps, and about 30% of them switch between memorization and grokking.
+- **Natural variation in the draw doesn't matter for outcomes.** Seed-to-seed differences in init coverage or
+  redundancy don't predict grokking time or accuracy at any width (1C).
+- **The specific winners are interchangeable.** Removing them at init changes nothing, because the network regrows
+  them (1D knockout).
+- **(A), coverage at init, is ruled out as the explanation of the width effect.** Coverage is already complete at
+  H = 128, where grokking takes 28k steps, and t_grok keeps falling 6× from H = 128 to 512 with coverage saturated.
+- **(B) holds only in a weak form.** Below the threshold, networks that concentrate more neurons on fewer
+  frequencies generalize better (1C, descriptive). But networks never converge to a few key frequencies. They use
+  essentially all 23 at every width that generalizes. And forcing a single frequency hurts (1D).
+- **The twist: the init lottery's *mechanism* is causally powerful, even though its natural draw isn't.**
+  Initializations with strong, phase-aligned Fourier features grok **5–9× faster** whether or not their coverage is
+  balanced (1D rigged). Random init falls far short of that regime; its winning margins are tiny. So what decides
+  grokking time is **how strong the Fourier features are at the start**, not which frequencies won or how many were
+  covered. On this reading, width speeds grokking mainly by adding neurons per frequency, which raises the starting
+  strength of the population-level Fourier signal.
+
+**Surprises:**
+1. The one-hot MLP uses all K frequencies, roughly uniformly, even 30k steps after grokking. It does not prune to a
+   few key frequencies, unlike the transformer results in the literature.
+2. Smaller init made θ₀ *less* predictive (1B). This is probably an AdamW effect: the theory assumes gradient flow.
+3. H = 128 plateaus at 97–99% test accuracy, so the 99% criterion understates where the threshold is.
+
+**Caveats:**
+- There are only 3 seeds per intervention and 8 per width. The 1C null result can only rule out strong within-width
+  correlations (|ρ| ≳ 0.5 combined).
+- Everything here is at p = 47 with AdamW. The p = 97 confirmation, a plain-GD arm, and the optional tied/no-bias
+  replication of arXiv 2602.16849 have not been run.
+- Rigged inits change more than one thing at once: they raise per-neuron IPR, phase alignment and the
+  population-level Fourier signal together. A dose–response on `boost`, and alignment-only and concentration-only
+  variants, would separate these.
 
 ## Infrastructure notes
 
