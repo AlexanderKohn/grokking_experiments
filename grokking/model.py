@@ -1,6 +1,7 @@
 """Small models for grokking: a 1-layer transformer (Nanda et al. style) and an MLP."""
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 
 class Transformer(nn.Module):
@@ -38,24 +39,48 @@ class Transformer(nn.Module):
 
 
 class MLP(nn.Module):
-    """Embeds a and b, concatenates, and maps through a 1-hidden-layer MLP."""
+    """1-hidden-layer ReLU MLP on (a, b). Only a and b are used; op and '=' are ignored.
 
-    def __init__(self, vocab: int, n_out: int, d_embed=128, d_hidden=512):
+    input modes:
+      onehot: concat(onehot(a), onehot(b)) of size 2p -> hidden. This is the standard
+              MLP-grokking setup (Gromov 2023; Liu et al. 2022). The first layer is
+              equivalent to separate, untied embeddings for a and b that are summed.
+      scalar: [a, b] / (p - 1) as two real numbers -> hidden. There is no symbolic
+              structure, so the network must build the wrap-around itself, which is
+              much harder.
+      embed:  a shared learned embedding table for a and b, concatenated -> hidden.
+    """
+
+    def __init__(self, p: int, n_out: int, input_mode="onehot", d_hidden=512, d_embed=128):
         super().__init__()
-        self.embed = nn.Embedding(vocab, d_embed)
-        self.net = nn.Sequential(
-            nn.Linear(2 * d_embed, d_hidden), nn.ReLU(), nn.Linear(d_hidden, n_out)
-        )
+        self.p, self.input_mode = p, input_mode
+        if input_mode == "onehot":
+            d_in = 2 * p
+        elif input_mode == "scalar":
+            d_in = 2
+        elif input_mode == "embed":
+            self.embed = nn.Embedding(p, d_embed)
+            nn.init.normal_(self.embed.weight, std=d_embed**-0.5)
+            d_in = 2 * d_embed
+        else:
+            raise ValueError(input_mode)
+        self.net = nn.Sequential(nn.Linear(d_in, d_hidden), nn.ReLU(), nn.Linear(d_hidden, n_out))
 
     def forward(self, x):
-        e = self.embed(x[:, [0, 2]])  # just a and b
-        return self.net(e.flatten(1))
+        ab = x[:, [0, 2]]
+        if self.input_mode == "onehot":
+            h = F.one_hot(ab, self.p).float().flatten(1)
+        elif self.input_mode == "scalar":
+            h = ab.float() / (self.p - 1)
+        else:
+            h = self.embed(ab).flatten(1)
+        return self.net(h)
 
 
-def build_model(name: str, p: int, **kw):
+def build_model(name: str, p: int, mlp_input: str = "onehot"):
     vocab, n_out = p + 2, p
     if name == "transformer":
-        return Transformer(vocab, n_out, **kw)
+        return Transformer(vocab, n_out)
     if name == "mlp":
-        return MLP(vocab, n_out, **kw)
+        return MLP(p, n_out, input_mode=mlp_input)
     raise ValueError(name)

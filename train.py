@@ -21,6 +21,7 @@ def parse_args():
     ap.add_argument("--op", default="add", choices=["add", "sub", "mul", "div"])
     ap.add_argument("--train-frac", type=float, default=0.3)
     ap.add_argument("--model", default="transformer", choices=["transformer", "mlp"])
+    ap.add_argument("--mlp-input", default="onehot", choices=["onehot", "scalar", "embed"])
     ap.add_argument("--steps", type=int, default=10000)
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--wd", type=float, default=1.0)
@@ -48,12 +49,12 @@ def main():
     torch.manual_seed(args.seed)
 
     (xtr, ytr), (xte, yte) = make_dataset(args.p, args.op, args.train_frac, args.seed)
-    model = build_model(args.model, args.p)
+    model = build_model(args.model, args.p, mlp_input=args.mlp_input)
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.wd,
                             betas=(0.9, 0.98))
     sched = torch.optim.lr_scheduler.LambdaLR(opt, lambda s: min(1.0, (s + 1) / args.warmup))
 
-    name = args.out or f"runs/{args.model}_{args.op}_p{args.p}_f{args.train_frac}_wd{args.wd}_s{args.seed}"
+    name = args.out or f"runs/{args.model}{'-' + args.mlp_input if args.model == 'mlp' else ''}_{args.op}_p{args.p}_f{args.train_frac}_wd{args.wd}_s{args.seed}"
     out = Path(name)
     out.mkdir(parents=True, exist_ok=True)
     n_params = sum(p.numel() for p in model.parameters())
