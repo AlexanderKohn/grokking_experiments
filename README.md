@@ -9,6 +9,8 @@ Small, CPU-friendly grokking experiments on modular arithmetic (`a ∘ b mod p`)
   encoding (`--mlp-input onehot|scalar|embed`)
 - `train.py`: full-batch AdamW training that logs train/test loss and accuracy to `runs/<name>/history.json`
 - `plot.py`: draws accuracy and loss curves (log-x) for one or more runs
+- `experiments/`: specs for follow-up experiments (frequency lottery and width; grokked tickets). Start with
+  `experiments/README.md`.
 
 ## Quick start
 
