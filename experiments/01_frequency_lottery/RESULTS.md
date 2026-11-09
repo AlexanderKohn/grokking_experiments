@@ -1,6 +1,7 @@
 # Experiment 01 results: the frequency lottery and width
 
-Status: **all phases (1A–1D) done.** The conclusion is at the end.
+Status: **Phases 1A–1D done; 1E (follow-ups in `FOLLOWUPS.md`) in progress, with E1 done.** The 1A–1D conclusion
+is followed by Phase 1E.
 
 ## Reproduce
 
@@ -279,9 +280,10 @@ drawn from the rest.
   strength of the population-level Fourier signal.
 
 **Surprises:**
-1. The one-hot MLP uses all K frequencies, roughly uniformly, even 30k steps after grokking. It does not prune to a
-   few key frequencies, unlike the transformer results in the literature.
-2. Smaller init made θ₀ *less* predictive (1B). This is probably an AdamW effect: the theory assumes gradient flow.
+1. The one-hot MLP uses all K frequencies, roughly uniformly, even 30k steps after grokking. *Revised in 1E:* this
+   is what the analytic solution predicts for an untied one-hot MLP, so it is not actually surprising.
+2. Smaller init made θ₀ *less* predictive (1B). *Explained by E1:* Adam's first ~10 steps draw the lottery, and at
+   small init they overwrite θ₀ fastest.
 3. H = 128 plateaus at 97–99% test accuracy, so the 99% criterion understates where the threshold is.
 
 **Caveats:**
@@ -292,6 +294,47 @@ drawn from the rest.
 - Rigged inits change more than one thing at once: they raise per-neuron IPR, phase alignment and the
   population-level Fourier signal together. A dose–response on `boost`, and alignment-only and concentration-only
   variants, would separate these.
+
+## Phase 1E (follow-ups, in progress; see `FOLLOWUPS.md`)
+
+### E1: was the lottery drawn by Adam's first steps? (no new runs)
+
+This applies the same predictors to the 1B checkpoints at step t instead of θ₀, scoring each against the final k*
+of the final active neurons. Script: `phase1e_e1_predictor_over_time.py`. Numbers: `figures/phase1e_e1_results.json`.
+
+![E1](figures/phase1e_e1_predictor_over_time.png)
+
+| condition | t = 0 | 10 | 20 | 30 | 50 | 100 | 200 |
+|---|---|---|---|---|---|---|---|
+| full, init 0.1 | 0.44 | **0.85** | 0.93 | 0.96 | 0.98 | 0.99 | 1.00 |
+| full, init 0.3 | 0.43 | 0.74 | **0.84** | 0.88 | 0.94 | 0.97 | 0.99 |
+| full, init 1.0 | 0.45 | 0.57 | 0.70 | 0.78 | **0.85** | 0.92 | 0.95 |
+| grok, init 0.1 | 0.14 | 0.31 | 0.40 | 0.43 | 0.49 | 0.58 | 0.70 |
+| grok, init 0.3 | 0.19 | 0.31 | 0.39 | 0.44 | 0.52 | 0.60 | 0.71 |
+| grok, init 1.0 | 0.22 | 0.28 | 0.34 | 0.40 | 0.47 | 0.60 | 0.70 |
+
+These are `pred_growth` accuracies. `pred_power` catches up with it by t = 30. Bold marks the first step at or above 80%.
+
+- **Full data: the lottery is real, but the optimizer draws it.** Ten Adam steps after a 0.1-scale init, the
+  predictor gets 85% of neurons right, against 44% at θ₀. The smaller the init, the faster this happens. That fits
+  Adam's first updates having a fixed size of about lr·sign(g): they dominate a small init almost immediately, so
+  the "initial condition" that decides the winner is θ₁₀, not θ₀. This explains the 1B puzzle that smaller init made
+  θ₀ *less* predictive.
+- **Grokking split: assignment happens gradually during memorization.** Accuracy climbs slowly, to about 70% by
+  step 200, and is the same at every init scale. Here the frequency each neuron settles on is shaped by fitting the
+  training set, not decided in the first few steps.
+
+### Reframing "no key frequencies"
+
+The 1B/1C finding that the network uses all 23 frequencies is what the theory for this architecture predicts, so it
+isn't a surprise:
+- **Gromov 2023 (arXiv 2301.02679):** the analytic solution assigns one frequency per neuron, with k running over
+  the full set up to (p−1)/2. With more neurons than frequencies, "each frequency appears several times with
+  different random phases", and extra width "introduces redundancy" rather than new features.
+- **arXiv 2602.16849:** the frequency-diversification condition likewise needs the neurons to cover the spectrum.
+
+The 3–6 key frequencies reported for transformers more likely come from the shared, weight-decayed embedding
+bottleneck. That is a hypothesis; E4 tests it.
 
 ## Infrastructure notes
 
