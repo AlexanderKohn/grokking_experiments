@@ -3,6 +3,9 @@
 Build the shared infrastructure in `experiments/README.md` first. All Fourier quantities (α, φ, β, ψ, P, k*, IPR,
 D̃, active neurons, key frequencies) are defined there.
 
+> **Status:** Phases 1A–1D are done (see `RESULTS.md`). The follow-up runs and write-up revisions are specified in
+> **`FOLLOWUPS.md`** (Phase 1E).
+
 ## Background
 
 - Networks that grok modular addition use a Fourier algorithm in which each neuron specializes in one frequency
