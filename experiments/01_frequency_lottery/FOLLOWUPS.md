@@ -7,6 +7,9 @@ Add the results to `RESULTS.md` as "Phase 1E", and update the conclusion where n
 
 Priority order: **E1 (free) → E3 → E2 → E5 → E4 → E6**.
 
+**Status (November 9, 2026):** E1, E2, E5 (both lr arms; the μP arm was not needed) and E6 are done, plus an
+init-vs-split test that was not in this plan. Results are in `RESULTS.md`, Phase 1E. E3 and E4 are open.
+
 ---
 
 ## E1. Was the lottery drawn by Adam's first steps? (no new runs)
@@ -154,7 +157,7 @@ in 1C, 1D and E6, and plot log t95 against log S₀.
    phases are random. The claim should be stated in terms of S₀ (E6) or of the number of candidate neurons, not as
    an existing signal that width amplifies.
 4. **Cite prior work on structured initialization speeding up grokking:** *Let Me Grok for You: Accelerating
-   Grokking via Embedding Transfer from a Weaker Model* (GrokTransfer, 2024). The new contribution is identifying
+   Grokking via Embedding Transfer from a Weaker Model* (GrokTransfer, Xu et al., 2025, arXiv 2504.13292). The new contribution is identifying
    *which* property of the init matters (E6).
 5. **Connect the rigged-init result to circuit competition:** Varma et al. 2023 (arXiv 2309.02390), where the
    generalizing circuit is slower to learn but more efficient. A rigged init gives it a head start.

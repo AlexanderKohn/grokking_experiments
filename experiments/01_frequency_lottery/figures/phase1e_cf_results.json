@@ -1,0 +1,452 @@
+{
+ "H128_is1.0": {
+  "same init, different split": {
+   "agree": 0.13694581280788176,
+   "chance": 0.04385526515185037,
+   "pairs": 1015,
+   "per_pair": [
+    0.142,
+    0.17,
+    0.143,
+    0.14,
+    0.124,
+    0.106,
+    0.143,
+    0.143,
+    0.123
+   ]
+  },
+  "same split, different init": {
+   "agree": 0.04437869822485207,
+   "chance": 0.04371260024832989,
+   "pairs": 1014,
+   "per_pair": [
+    0.027,
+    0.062,
+    0.071,
+    0.044,
+    0.035,
+    0.035,
+    0.053,
+    0.027,
+    0.045
+   ]
+  },
+  "different init and split": {
+   "agree": 0.04940711462450593,
+   "chance": 0.04355247304157943,
+   "pairs": 2024,
+   "per_pair": [
+    0.044,
+    0.08,
+    0.018,
+    0.062,
+    0.071,
+    0.044,
+    0.054,
+    0.044,
+    0.054,
+    0.036,
+    0.062,
+    0.018,
+    0.036,
+    0.054,
+    0.088,
+    0.018,
+    0.036,
+    0.071
+   ]
+  },
+  "per-frequency share correlation": {
+   "same init, different split": 0.05207291443597854,
+   "same split, different init": 0.074779976304161,
+   "different init and split": 0.02305281825513733
+  },
+  "init score accuracy": {
+   "pred_growth": 0.1998149861239593,
+   "pred_power": 0.1683626271970398
+  },
+  "same frequency under all 3 splits": {
+   "frac": 0.050314465408805034,
+   "n": 318,
+   "init score names it": 0.75
+  },
+  "bound sqrt(same-init agreement)": 0.3700619040213161,
+  "t95 (init i, split j)": [
+   31850,
+   23550,
+   27050,
+   32900,
+   24000,
+   34400,
+   23150,
+   21150,
+   27750
+  ],
+  "log10 t95 variance": {
+   "init (rows)": 0.0016899221556136695,
+   "split (cols)": 0.0025564282884632697,
+   "total": 0.0050631972669201745
+  }
+ },
+ "H256_is1.0": {
+  "same init, different split": {
+   "agree": 0.14718384697130713,
+   "chance": 0.04368549960161018,
+   "pairs": 1882,
+   "per_pair": [
+    0.135,
+    0.115,
+    0.115,
+    0.156,
+    0.173,
+    0.133,
+    0.162,
+    0.163,
+    0.172
+   ]
+  },
+  "same split, different init": {
+   "agree": 0.04511677282377919,
+   "chance": 0.04341280999587314,
+   "pairs": 1884,
+   "per_pair": [
+    0.033,
+    0.062,
+    0.052,
+    0.062,
+    0.029,
+    0.048,
+    0.034,
+    0.048,
+    0.038
+   ]
+  },
+  "different init and split": {
+   "agree": 0.05082490686535391,
+   "chance": 0.04346721991995334,
+   "pairs": 3758,
+   "per_pair": [
+    0.062,
+    0.067,
+    0.049,
+    0.048,
+    0.058,
+    0.038,
+    0.057,
+    0.053,
+    0.043,
+    0.048,
+    0.07,
+    0.043,
+    0.053,
+    0.034,
+    0.043,
+    0.071,
+    0.028,
+    0.048
+   ]
+  },
+  "per-frequency share correlation": {
+   "same init, different split": 0.15519214875247309,
+   "same split, different init": 0.035067588341646236,
+   "different init and split": 0.0035938339074746677
+  },
+  "init score accuracy": {
+   "pred_growth": 0.2329490874159462,
+   "pred_power": 0.15465898174831894
+  },
+  "same frequency under all 3 splits": {
+   "frac": 0.051056338028169015,
+   "n": 568,
+   "init score names it": 0.7931034482758621
+  },
+  "bound sqrt(same-init agreement)": 0.3836454704167731,
+  "t95 (init i, split j)": [
+   8550,
+   8600,
+   7500,
+   6950,
+   7600,
+   7850,
+   8000,
+   9050,
+   7550
+  ],
+  "log10 t95 variance": {
+   "init (rows)": 0.0003674035595210914,
+   "split (cols)": 0.0003118119041431665,
+   "total": 0.0011442202496341157
+  }
+ },
+ "H512_is0.1": {
+  "same init, different split": {
+   "agree": 0.09298957126303592,
+   "chance": 0.043607401974102226,
+   "pairs": 3452,
+   "per_pair": [
+    0.09,
+    0.109,
+    0.099,
+    0.101,
+    0.095,
+    0.095,
+    0.1,
+    0.064,
+    0.084
+   ]
+  },
+  "same split, different init": {
+   "agree": 0.04257167680278019,
+   "chance": 0.04360366351864923,
+   "pairs": 3453,
+   "per_pair": [
+    0.028,
+    0.044,
+    0.031,
+    0.047,
+    0.058,
+    0.034,
+    0.052,
+    0.05,
+    0.039
+   ]
+  },
+  "different init and split": {
+   "agree": 0.04354136429608128,
+   "chance": 0.04348282595084131,
+   "pairs": 6890,
+   "per_pair": [
+    0.041,
+    0.049,
+    0.053,
+    0.026,
+    0.04,
+    0.052,
+    0.044,
+    0.062,
+    0.034,
+    0.05,
+    0.029,
+    0.045,
+    0.05,
+    0.05,
+    0.028,
+    0.042,
+    0.036,
+    0.053
+   ]
+  },
+  "per-frequency share correlation": {
+   "same init, different split": 0.12920701906179632,
+   "same split, different init": 0.23862582203653737,
+   "different init and split": 0.058181353553696885
+  },
+  "init score accuracy": {
+   "pred_growth": 0.16123370110330992,
+   "pred_power": 0.12863590772316952
+  },
+  "same frequency under all 3 splits": {
+   "frac": 0.02108433734939759,
+   "n": 996,
+   "init score names it": 0.5714285714285714
+  },
+  "bound sqrt(same-init agreement)": 0.3049419145723262,
+  "t95 (init i, split j)": [
+   4300,
+   4700,
+   4850,
+   4250,
+   4400,
+   5100,
+   4350,
+   4350,
+   4400
+  ],
+  "log10 t95 variance": {
+   "init (rows)": 0.00010671309896358074,
+   "split (cols)": 0.00034982967199403275,
+   "total": 0.0006647795185820021
+  }
+ },
+ "H512_is0.3": {
+  "same init, different split": {
+   "agree": 0.12672018348623854,
+   "chance": 0.043561709436354505,
+   "pairs": 3488,
+   "per_pair": [
+    0.133,
+    0.146,
+    0.119,
+    0.137,
+    0.111,
+    0.124,
+    0.126,
+    0.127,
+    0.119
+   ]
+  },
+  "same split, different init": {
+   "agree": 0.040195233993683605,
+   "chance": 0.04362513407618953,
+   "pairs": 3483,
+   "per_pair": [
+    0.049,
+    0.038,
+    0.018,
+    0.055,
+    0.049,
+    0.052,
+    0.049,
+    0.034,
+    0.018
+   ]
+  },
+  "different init and split": {
+   "agree": 0.04326577547793589,
+   "chance": 0.04344941651902688,
+   "pairs": 6957,
+   "per_pair": [
+    0.038,
+    0.052,
+    0.054,
+    0.042,
+    0.023,
+    0.067,
+    0.042,
+    0.055,
+    0.042,
+    0.07,
+    0.036,
+    0.051,
+    0.018,
+    0.039,
+    0.049,
+    0.039,
+    0.018,
+    0.044
+   ]
+  },
+  "per-frequency share correlation": {
+   "same init, different split": -0.013788849896524047,
+   "same split, different init": 0.21122396494316698,
+   "different init and split": 0.08989325826482057
+  },
+  "init score accuracy": {
+   "pred_growth": 0.1969015492253873,
+   "pred_power": 0.15292353823088456
+  },
+  "same frequency under all 3 splits": {
+   "frac": 0.04043392504930966,
+   "n": 1014,
+   "init score names it": 0.6585365853658537
+  },
+  "bound sqrt(same-init agreement)": 0.3559777851021585,
+  "t95 (init i, split j)": [
+   4050,
+   4300,
+   4450,
+   4400,
+   4700,
+   4750,
+   4150,
+   4400,
+   4700
+  ],
+  "log10 t95 variance": {
+   "init (rows)": 0.00019758054649983545,
+   "split (cols)": 0.0003106294362600194,
+   "total": 0.0005274182458233278
+  }
+ },
+ "H512_is1.0": {
+  "same init, different split": {
+   "agree": 0.16237337192474674,
+   "chance": 0.04344688660584707,
+   "pairs": 3455,
+   "per_pair": [
+    0.174,
+    0.194,
+    0.161,
+    0.177,
+    0.136,
+    0.161,
+    0.142,
+    0.168,
+    0.149
+   ]
+  },
+  "same split, different init": {
+   "agree": 0.04184704184704185,
+   "chance": 0.04356915906253613,
+   "pairs": 3465,
+   "per_pair": [
+    0.043,
+    0.031,
+    0.052,
+    0.05,
+    0.046,
+    0.032,
+    0.041,
+    0.045,
+    0.037
+   ]
+  },
+  "different init and split": {
+   "agree": 0.04676415230925148,
+   "chance": 0.043456807219726515,
+   "pairs": 6907,
+   "per_pair": [
+    0.036,
+    0.052,
+    0.052,
+    0.044,
+    0.049,
+    0.045,
+    0.046,
+    0.031,
+    0.036,
+    0.061,
+    0.045,
+    0.049,
+    0.041,
+    0.048,
+    0.045,
+    0.059,
+    0.037,
+    0.068
+   ]
+  },
+  "per-frequency share correlation": {
+   "same init, different split": 0.05975046227352454,
+   "same split, different init": 0.13213784159688602,
+   "different init and split": 0.030125291426549555
+  },
+  "init score accuracy": {
+   "pred_growth": 0.23340846481342348,
+   "pred_power": 0.1620335587277736
+  },
+  "same frequency under all 3 splits": {
+   "frac": 0.059356136820925554,
+   "n": 994,
+   "init score names it": 0.6440677966101694
+  },
+  "bound sqrt(same-init agreement)": 0.40295579400816006,
+  "t95 (init i, split j)": [
+   4600,
+   4850,
+   4400,
+   4850,
+   4650,
+   4500,
+   4650,
+   4800,
+   4900
+  ],
+  "log10 t95 variance": {
+   "init (rows)": 4.2805844333619325e-05,
+   "split (cols)": 4.2608461965258415e-05,
+   "total": 0.00023066843151874606
+  }
+ }
+}

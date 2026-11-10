@@ -33,6 +33,9 @@ def parse_args():
     ap.add_argument("--wd", type=float, default=1.0)
     ap.add_argument("--batch-size", type=int, default=0, help="0 = full batch")
     ap.add_argument("--warmup", type=int, default=10)
+    ap.add_argument("--optim", default="adamw", choices=["adamw", "sgd"],
+                    help="sgd = plain full-batch gradient descent (no momentum); --wd is then L2 decay, "
+                         "so the decay per step is lr*wd as for AdamW")
     ap.add_argument("--eval-every", type=int, default=50)
     ap.add_argument("--seed", type=int, default=0, help="seeds both the init and the data split")
     ap.add_argument("--threads", type=int, default=0, help="0 = torch default")
@@ -105,8 +108,11 @@ def main():
         model.load_state_dict(torch.load(args.init_from))
     remask = apply_mask(model, args.mask) if args.mask else None
 
-    opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.wd,
-                            betas=(0.9, 0.98))
+    if args.optim == "sgd":
+        opt = torch.optim.SGD(model.parameters(), lr=args.lr, weight_decay=args.wd, momentum=0.0)
+    else:
+        opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.wd,
+                                betas=(0.9, 0.98))
     sched = torch.optim.lr_scheduler.LambdaLR(opt, lambda s: min(1.0, (s + 1) / args.warmup))
 
     tag = f"{args.model}-{args.mlp_input}" if args.model == "mlp" else args.model

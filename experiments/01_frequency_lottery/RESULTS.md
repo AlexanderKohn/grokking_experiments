@@ -1,7 +1,7 @@
 # Experiment 01 results: the frequency lottery and width
 
-Status: **Phases 1A–1D done; 1E (follow-ups in `FOLLOWUPS.md`) in progress, with E1 done.** The 1A–1D conclusion
-is followed by Phase 1E.
+Status: **Phases 1A–1D done; 1E (follow-ups in `FOLLOWUPS.md`) done except E3 and E4.** The 1A–1D conclusion is
+followed by Phase 1E, which revises two parts of it (marked *Revised in 1E*).
 
 ## Reproduce
 
@@ -15,6 +15,17 @@ python experiments/01_frequency_lottery/phase1c_analysis.py
 python experiments/01_frequency_lottery/phase1d_interventions.py make --seeds 0 1 2
 bash   experiments/01_frequency_lottery/run_phase1d.sh 6               # 27 runs, 6 in parallel, about 15 min
 python experiments/01_frequency_lottery/phase1d_interventions.py analyze
+# Phase 1E (E2, E5, E6, init vs split): about 260 runs, roughly 2.5 h with 11 in parallel
+python experiments/01_frequency_lottery/phase1e_e6_rigged.py make
+for a in e2cal e5 cf e6; do python experiments/01_frequency_lottery/phase1e_jobs.py $a > runs/exp01/phase1e/jobs_$a.txt; done
+python experiments/01_frequency_lottery/phase1e_jobs.py e2 --gd-lr 1.0 > runs/exp01/phase1e/jobs_e2.txt
+for a in e2cal e5 cf e2 e6; do bash experiments/01_frequency_lottery/run_phase1e.sh runs/exp01/phase1e/jobs_$a.txt 11; done
+python experiments/01_frequency_lottery/phase1e_e1_predictor_over_time.py
+python experiments/01_frequency_lottery/phase1e_e2_gd_warmup.py
+python experiments/01_frequency_lottery/phase1e_e5_lr_width.py
+python experiments/01_frequency_lottery/phase1e_cf_init_vs_split.py
+python experiments/01_frequency_lottery/phase1e_e6_rigged.py analyze
+python experiments/01_frequency_lottery/post_figures.py --out <dir>   # the blog post's figures
 ```
 
 Raw runs go to `runs/exp01/` (gitignored). Summary plots and JSON go to `figures/`.
@@ -277,13 +288,15 @@ drawn from the rest.
   balanced (1D rigged). Random init falls far short of that regime; its winning margins are tiny. So what decides
   grokking time is **how strong the Fourier features are at the start**, not which frequencies won or how many were
   covered. On this reading, width speeds grokking mainly by adding neurons per frequency, which raises the starting
-  strength of the population-level Fourier signal.
+  strength of the population-level Fourier signal. *Revised in 1E:* the width effect is not an effective-lr
+  artifact (E5), but the population-level signal S₀ does not explain it either (E6).
 
 **Surprises:**
 1. The one-hot MLP uses all K frequencies, roughly uniformly, even 30k steps after grokking. *Revised in 1E:* this
    is what the analytic solution predicts for an untied one-hot MLP, so it is not actually surprising.
-2. Smaller init made θ₀ *less* predictive (1B). *Explained by E1:* Adam's first ~10 steps draw the lottery, and at
-   small init they overwrite θ₀ fastest.
+2. Smaller init made θ₀ *less* predictive (1B). *E1 suggested* that Adam's first ~10 steps redraw the lottery.
+   *Revised in 1E:* on full data they don't (the outcome is the same under GD or a 1,000-step warmup in 81–82% of
+   neurons); on the grokking split, a smaller init makes the outcome less tied to θ₀ (init-vs-split test).
 3. H = 128 plateaus at 97–99% test accuracy, so the 99% criterion understates where the threshold is.
 
 **Caveats:**
@@ -295,7 +308,7 @@ drawn from the rest.
   population-level Fourier signal together. A dose–response on `boost`, and alignment-only and concentration-only
   variants, would separate these.
 
-## Phase 1E (follow-ups, in progress; see `FOLLOWUPS.md`)
+## Phase 1E (follow-ups; see `FOLLOWUPS.md`)
 
 ### E1: was the lottery drawn by Adam's first steps? (no new runs)
 
@@ -315,14 +328,181 @@ of the final active neurons. Script: `phase1e_e1_predictor_over_time.py`. Number
 
 These are `pred_growth` accuracies. `pred_power` catches up with it by t = 30. Bold marks the first step at or above 80%.
 
-- **Full data: the lottery is real, but the optimizer draws it.** Ten Adam steps after a 0.1-scale init, the
-  predictor gets 85% of neurons right, against 44% at θ₀. The smaller the init, the faster this happens. That fits
-  Adam's first updates having a fixed size of about lr·sign(g): they dominate a small init almost immediately, so
-  the "initial condition" that decides the winner is θ₁₀, not θ₀. This explains the 1B puzzle that smaller init made
-  θ₀ *less* predictive.
+- **Full data: the predictor improves quickly once training starts.** Ten Adam steps after a 0.1-scale init, the
+  predictor gets 85% of neurons right, against 44% at θ₀. *The original reading here, that Adam's first steps
+  redraw the lottery so that θ₁₀ rather than θ₀ decides the winner, is wrong; see E2.* Same θ₀ and data with a
+  1,000-step warmup, or with plain GD, gives the same final k* for 81–82% of neurons. θ₀ decides most of the
+  outcome; the gradient-flow score captures about half of it, and gets better as the weights move toward their
+  answer.
 - **Grokking split: assignment happens gradually during memorization.** Accuracy climbs slowly, to about 70% by
   step 200, and is the same at every init scale. Here the frequency each neuron settles on is shaped by fitting the
   training set, not decided in the first few steps.
+
+### E2: plain gradient descent, and the Adam warmup ablation (H = 512, seeds 0–2)
+
+Script: `phase1e_e2_gd_warmup.py`. Numbers: `figures/phase1e_e2_results.json`.
+
+**Calibration** (seed 0, all pairs, 20k steps, SGD without momentum, L2 = 1e-3/lr so the decay per step matches
+AdamW's lr·wd): lr 0.03 and 0.1 make no progress at either init scale (loss stays at ln 47); lr 0.3 fits at init 1.0
+only (step 14,350); **lr 1.0** fits at both (steps 1,550 and 2,250). All GD arms use lr 1.0 with no warmup.
+
+![E2](figures/phase1e_e2_predictor_over_time.png)
+
+`pred_growth` accuracy at checkpoint t against final k* (active neurons), lock-in and switching:
+
+| condition | t = 0 | 10 | 50 | 100 | 200 | 1000 | lock median | switch fit→end | t_fit | t95 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| GD, all pairs, init 1.0 | 0.52 | 0.55 | 0.63 | 0.71 | 0.83 | 0.98 | 100 | 0.00–0.01 | 1,500–1,550 | – |
+| GD, all pairs, init 0.1 | 0.53 | 0.55 | 0.64 | 0.72 | 0.83 | 0.98 | 100 | 0.00 | 2,200–2,250 | – |
+| Adam, all pairs, init 1.0 (1B) | 0.45 | 0.57 | 0.85 | 0.92 | 0.95 | 1.00 | 20 | 0.05–0.06 | 150 | – |
+| Adam, all pairs, init 0.1, warmup 1 | 0.43 | 0.89 | 0.98 | 0.99 | 1.00 | 1.00 | 10 | 0.01 | 100 | – |
+| Adam, all pairs, init 0.1, warmup 10 (1B) | 0.44 | 0.85 | 0.98 | 0.99 | 1.00 | 1.00 | 10 | 0.00–0.02 | 100 | – |
+| Adam, all pairs, init 0.1, warmup 100 | 0.43 | 0.56 | 0.94 | 0.98 | 0.99 | 1.00 | 20 | 0.01–0.02 | 100 | – |
+| Adam, all pairs, init 0.1, warmup 1000 | 0.42 | 0.43 | 0.67 | 0.88 | 0.98 | 1.00 | 50 | 0.01–0.02 | 250 | – |
+| GD, split, init 1.0 | 0.28 | 0.32 | 0.38 | 0.47 | 0.55 | 0.87 | 210 | 0.13–0.16 | 1,000 | 32k / – / – |
+| GD, split, init 0.1 | 0.20 | 0.22 | 0.26 | 0.30 | 0.37 | 0.64 | 750 | 0.11–0.16 | 1,750 | – / – / – |
+| Adam, split, warmup 1 | 0.23 | 0.33 | 0.53 | 0.63 | 0.74 | 0.89 | 70 | 0.26–0.28 | 200 | 4.5k–4.8k |
+| Adam, split, warmup 10 (1B) | 0.22 | 0.28 | 0.47 | 0.60 | 0.70 | 0.85 | 90 | 0.28–0.35 | 200 | 4.6k–4.9k |
+| Adam, split, warmup 100 | 0.23 | 0.24 | 0.35 | 0.54 | 0.72 | 0.90 | 110 | 0.25–0.33 | 200–250 | 4.5k–5.0k |
+| Adam, split, warmup 1000 | 0.23 | 0.23 | 0.24 | 0.28 | 0.40 | 0.83 | 350 | 0.33–0.37 | 600 | 4.9k–5.4k |
+
+**Same θ₀ and data, one thing changed** (share of neurons active in both runs with the same final k*, 3 seeds
+pooled; chance ≈ 0.04):
+
+| all pairs | agree | grokking split | agree |
+|---|---|---|---|
+| init 0.1, warmup 1 vs 1000 | 0.81 | init 1.0, warmup 1 vs 1000 | 0.70 |
+| init 0.1, warmup 10 vs 100 | 0.90 | init 1.0, warmup 10 vs 100 | 0.75 |
+| init 0.1, Adam vs GD | 0.82 | init 1.0, Adam vs GD | 0.50 |
+| init 1.0, Adam vs GD | 0.82 | init 0.1, Adam vs GD | 0.35 |
+
+- **On full data, θ₀ decides most of the outcome, whatever the optimizer.** A 1,000-step warmup or a switch to GD
+  leaves 81–82% of final frequencies unchanged. The gradient-flow score gets 52–53% under GD (its own optimizer)
+  and 43–45% under Adam: better than chance by 10×, but it captures only about half of what θ₀ determines. The early
+  climb of the predictor tracks how far the weights have moved (it shifts right with warmup), not a redraw.
+- **On the grokking split, the optimizer's path matters.** Changing the warmup changes 16–33% of final frequencies, and GD vs
+  Adam half of them. Switching (fit → end) stays at 25–37% under Adam for every warmup and is 11–16% under GD.
+- **Warmup barely affects grokking time** (t95 4.5k–5.4k across warmup 1–1000), and lock-in moves later with longer
+  warmup (median 70 → 350).
+- **GD mostly doesn't grok within 50k steps** at lr 1.0 (1 of 6 runs reached 95%, at 32k), so the theory's own
+  regime can't be tested on the split with this budget.
+- Caveats: GD here is discrete (lr 1.0), with biases and untied one-hot inputs, not the tied/no-bias model of
+  arXiv 2602.16849. 3 seeds.
+
+### Init vs split: what decides a neuron's frequency on the grokking split?
+
+θ₀ from seed i, data split from seed j, i, j ∈ {0, 1, 2}, stop 2k steps after 99% test (cap 50k). The diagonal runs
+reproduce 1B/1C exactly (identical t95). Script: `phase1e_cf_init_vs_split.py`. Numbers:
+`figures/phase1e_cf_results.json`.
+
+| config | same θ₀, different split | chance | init score (pred_growth) | same k* under all 3 splits | √(same-θ₀ agreement) |
+|---|---|---|---|---|---|
+| H = 128, init 1.0 | 0.137 | 0.044 | 0.200 | 5.0% | 0.37 |
+| H = 256, init 1.0 | 0.147 | 0.044 | 0.233 | 5.1% | 0.38 |
+| H = 512, init 1.0 | 0.162 | 0.043 | 0.233 | 5.9% | 0.40 |
+| H = 512, init 0.3 | 0.127 | 0.044 | 0.197 | 4.0% | 0.36 |
+| H = 512, init 0.1 | 0.093 | 0.044 | 0.161 | 2.1% | 0.30 |
+
+- **θ₀ fixes only 9–16% of assignments on the grokking split** (chance 4.4%), at every width. Changing which half of
+  the pairs is held out reassigns the rest. A smaller init makes the outcome even less tied to θ₀.
+- **An init-only predictor is capped.** If a predictor is right for a neuron with probability q under each split
+  independently, the same-θ₀ agreement is at least about q², so q ≲ √(agreement) ≈ 30–40%. The paper's score reaches
+  16–23%, about half the cap. Of the few neurons that keep their frequency under all three splits, the score names it
+  57–79% of the time.
+- **"Same split, different θ₀" is at chance (0.040–0.045) by construction:** neuron m has no identity across
+  different inits. *This corrects a reading of the pilot, which took it as evidence that the split matters more than
+  the init.* The fair split-level comparison, the correlation of per-frequency contribution shares between runs, is
+  weak and noisy everywhere (≤ 0.24 with 23 near-uniform shares and 9 pairs per cell), so whether the split shapes
+  *which* frequencies dominate is unresolved.
+- **t95 doesn't depend on θ₀ or on the split much:** the variance of log t95 across the 3×3 grid is small (e.g.
+  4.4k–4.9k at H = 512, init 1.0), with neither the row (init) nor the column (split) effect dominating.
+
+### E5: is the width effect just effective learning rate? (H ∈ {64, 128, 256, 512, 1024}, 5 seeds)
+
+Arm (a): wd = 1, so the decay per step lr·wd moves with lr. Arm (b): lr·wd = 1e-3 held fixed. Grid: lr·H ∈ {0.128,
+0.256, 0.512, 1.024, 2.048} for H = 128, 256, 512 in both arms, plus H = 64 at lr {4, 8, 16}e-3 and H = 1024 at lr
+{0.5, 1}e-3 (wd 1). The lr 1e-3, wd 1 cells are the 1C runs (seeds 0–4). 50k cap. Script: `phase1e_e5_lr_width.py`.
+Numbers: `figures/phase1e_e5_results.json`.
+
+![E5](figures/phase1e_e5_lr_width.png)
+
+Median t95 (all 5 seeds reach 95% unless noted):
+
+| H | arm (a) wd = 1: lr 2.5e-4 / 5e-4 / 1e-3 / 2e-3 / 4e-3 / 8e-3 / 1.6e-2 | arm (b) lr·wd = 1e-3: same lr grid |
+|---|---|---|
+| 128 | – / – / 27.8k / 11.1k / 5.4k / 1.75k / 1.05k | – / – / 27.8k / 15.9k / 13.1k / 11.1k / 1 of 5 |
+| 256 | – / 17.9k / 7.6k / 3.4k / 1.55k / 0.95k / – | – / 21.0k / 7.6k / 5.8k / 4.9k / 4.9k / – |
+| 512 | 21.1k / 10.2k / 4.6k / 2.15k / 1.1k / – / – | 0 of 5 (wd 4) / 8.5k / 4.6k / 3.55k / 3.25k / – / – |
+| 1024 | – / 7.4k / 3.35k / – / – / – / – | |
+| 64 | never reaches 95% at lr 1e-3 … 1.6e-2; final test rises from 0.30–0.48 to 0.77–0.89 | |
+
+Log-linear fits over the 136 runs with H ≥ 128 that reach 95% (coefficient ± s.e.):
+
+| model | R² | lr | H | lr·wd |
+|---|---|---|---|---|
+| log t95 ~ log(lr·H) | 0.66 | −0.85 ± 0.05 (shared) | | |
+| ~ log lr + log H | 0.67 | −0.84 ± 0.05 | −0.99 ± 0.09 | |
+| ~ log lr + log H + log(lr·wd) | **0.92** | −0.36 ± 0.03 | **−1.03 ± 0.04** | **−0.78 ± 0.04** |
+| arm (a) only: ~ log lr + log H | 0.95 | −1.11 ± 0.03 | −0.98 ± 0.04 | |
+| arm (b) only: ~ log lr + log H | 0.82 | −0.40 ± 0.04 | −1.06 ± 0.06 | |
+
+- **The width effect is not an effective-lr artifact.** With the decay per step fixed (arm b), raising lr 8× speeds
+  H = 128 up only 2.5× and it never reaches H = 512's speed; H = 512 is 4–6× faster than H = 128 at every lr.
+  t95 ∝ H^−1 in both arms.
+- **The apparent lr·H collapse in arm (a) is a coincidence of exponents.** At wd = 1, raising lr also raises lr·wd,
+  and the two together give lr^−1.1, close to H's −1.0. *This corrects the pilot reading (2 seeds, arm a only) that
+  the 128→512 speed-up is "matched by scaling the learning rate".*
+- **Decay per step is the other big lever** (exponent −0.8), consistent with weight decay setting the grokking
+  timescale. Too much decay breaks it (H = 512, lr 2.5e-4, wd 4: test plateaus at 0.79–0.84), and too little at a
+  high lr too (H = 128, lr 1.6e-2, wd 0.0625: 1 of 5 reach 95%).
+- **The width gain flattens above 512:** at lr 1e-3, H = 1024 is 1.4× faster than 512, and at matched lr·H it is
+  slower. From 128 to 256 the gain is 3.6×, from 256 to 512 1.7×.
+- **The threshold is not an lr effect:** H = 64 never reaches 95% even at 16× lr, though its plateau rises.
+- The μP arm of E5 (per-layer lr and init scaling) was not run; arm (b) answers the confound question without it.
+
+### E6: rigged init, dose-response and decomposition (H = 128, seeds 0–2, 1C splits)
+
+Random assignment k_m ~ U{1..K}; rows rescaled to their original norm as in 1D. Script: `phase1e_e6_rigged.py`.
+Numbers: `figures/phase1e_e6_results.json`.
+
+| variant | t95 (seeds 0 / 1 / 2) | S₀ (mean) |
+|---|---|---|
+| baseline (1C) | 31.9k / 24.0k / 27.8k | 0.0010 |
+| boost 0.25, aligned | 26.3k / 23.0k / 33.5k | 0.0010 |
+| boost 0.5, aligned | 28.1k / 22.3k / 25.3k | 0.0010 |
+| boost 1, aligned | 25.2k / 29.4k / 21.1k | 0.0035 |
+| boost 2, aligned | **10.8k / 3.6k / 7.5k** | 0.016 |
+| boost 4, aligned | **3.1k / 2.4k / 4.8k** | 0.040 |
+| boost 0.25, random output phase | 18.7k / 22.7k / 29.7k | 0.0010 |
+| boost 0.5, random output phase | 29.1k / 25.8k / 35.6k | 0.0010 |
+| boost 1, random output phase | 23.8k / 30.4k / 19.0k | 0.0017 |
+| boost 2, random output phase | 13.5k / 20.1k / 15.2k | 0.0067 |
+| boost 4, random output phase | 16.2k / 6.2k / 46.3k | 0.016 |
+| alignment only (no boost) | 27.3k / 27.3k / 34.9k | 0.0011 |
+
+![E6](figures/phase1e_e6_s0_collapse.png)
+
+- **A threshold in the boost:** nothing happens until the assigned frequency is clearly the neuron's largest
+  component (boost > 1). At boost 1 it only ties, and the runs are as slow as unedited ones.
+- **Both concentration and alignment are needed.** Alignment alone does nothing: the `pred_growth` winner already
+  has mean cos D ≈ 0.85 at random init. A 2× boost with a random output phase speeds grokking ~1.8× (median); aligned,
+  ~3.7×; at 4×, aligned is ~9× and reliable while random-phase is erratic (6k–46k).
+- **S₀ does not unify width and rigging.** Within H = 128 (1D + E6 + baseline, 63 runs), log t95 vs log S₀ has slope
+  −0.44, R² 0.54. Across the 1C widths it has slope −2.7 (R² 0.92): a 2× rise in S₀ from H = 128 to 512 goes with a
+  6× speed-up, while rigging needs a ~16× rise for a similar effect. Pooled, R² 0.23. Width acts through something
+  other than the initial coherent signal.
+
+### Phase 1E conclusion
+
+- **The lottery picture holds better on full data than the 1B numbers suggested, and worse on the grokking split.**
+  On full data θ₀ determines ~80% of the final assignment, robustly to the optimizer; the gradient-flow score sees
+  about half of that. On the grokking split θ₀ determines 9–16%; the held-out set and the optimizer path decide the
+  rest.
+- **Width is a real lever** (t95 ∝ H^−1 from 128 to 512 at a fixed decay per step), not an effective-lr artifact, and
+  not explained by S₀. Decay per step is nearly as strong a lever.
+- **The rigged-init speed-up needs a dominant, phase-aligned frequency per neuron.** Neither ingredient works alone.
+- Open: E3 (does the threshold scale with K?), E4 (embedding bottleneck), and a GD replication long enough to grok,
+  ideally in the tied/no-bias architecture of arXiv 2602.16849.
 
 ### Reframing "no key frequencies"
 
@@ -340,7 +520,8 @@ bottleneck. That is a hypothesis; E4 tests it.
 
 - `grokking/model.py`: new `--d-hidden`, `--init-scale`, `--no-bias` and `--mlp-input tied`. `make_model(...)` is
   now the single place a seed's θ₀ is built.
-- `train.py`: new `--save-init`, `--ckpt-every` (with `--ckpt-dense-until/--ckpt-dense-every` and
+- `train.py`: new `--optim {adamw,sgd}` (1E; `sgd` is plain full-batch GD without momentum, `--wd` as L2 decay;
+  the default `adamw` path is unchanged, and the 1E diagonal runs reproduce 1B/1C t95 exactly), `--save-init`, `--ckpt-every` (with `--ckpt-dense-until/--ckpt-dense-every` and
   `--ckpt-sparse-after/--ckpt-sparse-every` for a 10 → 250 → 1000 schedule), `--init-from`, `--mask`, `--max-steps` (an alias of `--steps`) and `--post-grok-steps`. Every run also
   saves `final.pt`. The summary now includes `train/test_{95,99}_step`, `grok_ratio`, `log10_grok_ratio` and the
   same ratios at 95%. With `--train-frac 1.0` the test metrics are NaN.
